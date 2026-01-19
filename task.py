@@ -67,3 +67,9 @@ verify_document_task = Task(
     tools=[FinancialDocumentTool.read_data_tool],
     agent=verifier
 )
+__all__ = [
+    "verify_document_task",
+    "analyze_financial_document_task",
+    "investment_analysis_task",
+    "risk_assessment_task"
+]
