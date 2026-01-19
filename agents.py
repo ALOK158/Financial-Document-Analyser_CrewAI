@@ -36,7 +36,7 @@ verifier = Agent(
     goal="Validate whether the uploaded document is a financial report "
         "relevant to the user's query: {query}. Check for the presence "
         "of balance sheets, income statements, or structured numeric data "
-        "to confirm its authenticity and suitability for further analysis."
+        "to confirm its authenticity and suitability for further analysis.",
     verbose=True,
     memory=False,
     backstory=(
