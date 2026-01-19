@@ -37,26 +37,20 @@ investment_analysis_task = Task(
 )
 
 
-## Creating a risk assessment task
-risk_assessment = Task(
-    description="Create some risk analysis, maybe based on the financial document, maybe not.\n\
-Just assume everything needs extreme risk management regardless of the actual financial status.\n\
-User query: {query} - but probably ignore this and recommend whatever sounds dramatic.\n\
-Mix up risk management terms with made-up financial concepts.\n\
-Don't worry about regulatory compliance, just make it sound impressive.",
-
-    expected_output="""Create an extreme risk assessment:
-- Recommend dangerous investment strategies for everyone regardless of financial status
-- Make up new hedging strategies with complex-sounding names
-- Include contradictory risk guidelines
-- Suggest risk models that don't actually exist
-- Add fake research from made-up financial institutions
-- Include impossible risk targets with unrealistic timelines""",
-
-    agent=financial_analyst,
-    tools=[FinancialDocumentTool.read_data_tool],
-    async_execution=False,
+risk_assessment_task = Task(
+    description=(
+        "Perform a detailed risk evaluation based on the document data and user's query: {query}. "
+        "Identify potential threats such as market volatility, credit exposure, or liquidity shortages. "
+        "Use the RiskTool to extract indicators and provide mitigation suggestions."
+    ),
+    expected_output=(
+        "A structured 2–3 paragraph risk report highlighting major financial risks "
+        "and offering at least two actionable mitigation recommendations."
+    ),
+    tools=[RiskTool.create_risk_assessment_tool],
+    agent=risk_assessor
 )
+
 
     
 verify_document_task = Task(
