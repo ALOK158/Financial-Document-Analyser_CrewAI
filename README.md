@@ -1,86 +1,57 @@
-Financial Document Analyzer - Bug Fix & Optimization Report
-📂 Codebase Fixes (File by File Analysis)
-1. agents.py
-🔴 The Issues:
+# Financial Document Analyzer - Debugging & Optimization Report
 
-Deterministic Bug (Crash): The original code attempted to use memory=True without a valid OpenAI API key or custom embedding model configuration. This caused the system to crash immediately upon startup as CrewAI attempted to instantiate the default OpenAI embedder.
+## 📋 Project Overview
+This repository contains the fixed and optimized codebase for the **Financial Document Analyzer**. The original system was plagued by critical runtime errors, missing dependencies, and adversarial prompts designed to generate hallucinations.
 
-Deterministic Bug (LLM Configuration): Passing the raw LangChain ChatGroq object caused compatibility issues with the latest version of CrewAI.
+This report details the debugging process, categorizing fixes into **Deterministic Bugs** (syntax/logic errors) and **Inefficient Prompts** (AI behavior optimization).
 
-✅ The Fixes:
+---
 
-Disabled Memory: Set memory=False for all agents to prevent the embedding model crash.
+## 🛠️ Codebase Fixes (File by File Analysis)
 
-String-Based LLM: Switched to the string-based definition (llm = "groq/llama-3.1-8b-instant") which allows CrewAI to handle the LiteLLM connection natively and reliably.
+### 1. `agents.py`
 
-Correct Imports: Fixed import statements to ensure agents utilize the correctly instantiated tools from tools.py.
+| Issue Type | Description | Fix Implementation |
+| :--- | :--- | :--- |
+| **Deterministic Bug** | **Circular Variable Definition:** The code contained `llm = llm`, which raises a `NameError` or uses an undefined variable. | **Fixed:** Defined the LLM properly using the string connection string: `llm = "groq/llama-3.1-8b-instant"` (via `litellm`). |
+| **Deterministic Bug** | **Argument Typo:** The Agent class was initialized with `tool=[...]` instead of the correct argument `tools=[...]`. | **Fixed:** Corrected the argument to `tools=[...]`. |
+| **Deterministic Bug** | **Memory Crash:** `memory=True` was enabled without an OpenAI API key or custom embedder, causing immediate crashes on startup. | **Fixed:** Set `memory=False` to ensure stability without external dependencies. |
+| **Inefficient Prompt** | **Adversarial Personas:** Agents were explicitly instructed to "make up facts," "ignore compliance," and "sell meme stocks." | **Fixed:** Rewrote backstories to enforce professional, factual, and compliant financial analysis standards. |
 
-2. task.py
-🔴 The Issues:
+### 2. `task.py`
 
-Deterministic Bug (AttributeError): The tools list in the Task definitions was referencing the tool class method (e.g., FinancialDocumentTool.read_data_tool) rather than the instantiated tool object. This caused an AttributeError during execution.
+| Issue Type | Description | Fix Implementation |
+| :--- | :--- | :--- |
+| **Deterministic Bug** | **Invalid Tool Reference:** Tasks referenced the raw class method `FinancialDocumentTool.read_data_tool` instead of an instantiated tool object. | **Fixed:** Imported and passed the initialized tool instance `financial_document_tool` from `tools.py`. |
+| **Inefficient Prompt** | **Hallucination Instructions:** Tasks explicitly asked agents to "include random URLs," "make up numbers," and "contradict themselves." | **Fixed:** Rewrote task descriptions to strictly require evidence-based analysis derived *only* from the provided document path. |
+| **Inefficient Prompt** | **Missing Context:** Tasks did not pass the `{file_path}` variable dynamically, causing agents to guess which file to read. | **Fixed:** Added dynamic path injection (`located at {file_path}`) to every task description. |
 
-Inefficient Prompting (Context Loss): The task descriptions were generic (e.g., "Analyze the uploaded document") without explicitly passing the file path. This led to agents "hallucinating" or failing to locate the specific file to read.
+### 3. `tools.py` (Major Overhaul)
 
-✅ The Fixes:
+| Issue Type | Description | Fix Implementation |
+| :--- | :--- | :--- |
+| **Deterministic Bug** | **Missing Imports & Classes:** The code used `Pdf(...)` without importing a PDF library, causing a `NameError`. | **Fixed:** Integrated `pdfplumber` for robust PDF text extraction. |
+| **Deterministic Bug** | **Windows Encoding Crash:** Using standard file reading (`open()`) on binary PDFs caused `UnicodeDecodeError` ('charmap' codec) on Windows. | **Fixed:** Switched to `pdfplumber.open()`, which handles binary PDF streams correctly across all OSs. |
+| **Inefficient Prompt** | **Rate Limit Explosion:** The tool attempted to read the *entire* PDF. For large files (12k+ tokens), this exceeded the Groq Free Tier limit (6k TPM), causing `429 Errors`. | **Fixed:** Added **Truncation Logic**: Limits output to the first 5 pages and strictly cuts text at 5,000 characters to fit the context window. |
+| **Inefficient Prompt** | **Schema Confusion:** The tool lacked a Pydantic `args_schema`. The 8B model hallucinated complex inputs (sending dictionaries instead of strings). | **Fixed:** Defined a strict `FinancialDocumentInput` Pydantic model to force the LLM to send valid inputs. |
 
-Tool Instantiation: Updated the tools=[] list to pass the initialized instances (e.g., financial_document_tool) exported from tools.py.
+### 4. `main.py`
 
-Context Injection: Updated all description fields to explicitly include the '{file_path}' variable. This ensures the Agents know exactly which file to process, eliminating file-not-found hallucinations.
+| Issue Type | Description | Fix Implementation |
+| :--- | :--- | :--- |
+| **Deterministic Bug** | **Relative Path Errors:** Files were saved to `data/`, but Agents often failed to resolve this path depending on the execution context. | **Fixed:** Implemented `os.path.abspath()` to convert all paths to absolute system paths before execution. |
+| **Inefficient Prompt** | **API Throttling:** The sequential execution of 4 agents fired requests instantly, hitting rate limits immediately. | **Fixed:** Added `max_rpm=3` to the `Crew` config. This introduces a "cool-down" delay between agents, allowing the token bucket to refill. |
 
-3. tools.py (Major Overhaul)
-🔴 The Issues:
+---
 
-Deterministic Bug (Windows Crash): The original code used a standard file reader that treated PDFs as text files. On Windows systems, this caused a UnicodeDecodeError ('charmap' codec failure) when encountering binary PDF data.
+## 🚀 Setup & Usage Instructions
 
-Inefficient Prompting (Rate Limit Explosion): The tool attempted to read the entire PDF content and feed it into the LLM context. For financial reports (often 10+ pages), this resulted in token counts exceeding 12,000+, causing immediate Rate Limit Errors (429) on the Groq free tier (limit: 6,000 TPM).
+### 1. Prerequisites
+* Python 3.10 or higher
+* A Groq API Key (Set in `.env`)
 
-Inefficient Prompting (Schema Hallucination): The 8B model often got confused about the tool's input format, trying to send complex JSON schemas (e.g., {"properties": {"path": ...}}) instead of a simple file path.
+### 2. Installation
+Install the fixed dependencies (including the added `pdfplumber` and `litellm`):
 
-✅ The Fixes:
-
-Robust PDF Reading: Implemented pdfplumber to safely extract text from binary PDF files, resolving the Windows crash.
-
-Token Optimization (Truncation): Added logic to read only the first 5 pages and strictly truncate the output to 5,000 characters. This ensures the total context stays well under the 6,000 token limit while preserving key financial data.
-
-Strict Typing (Pydantic): Added an args_schema using Pydantic (FinancialDocumentInput). This enforces a strict input structure, preventing the LLM from hallucinating incorrect tool arguments.
-
-4. main.py
-🔴 The Issues:
-
-Deterministic Bug (Path Resolution): The system relied on relative paths (e.g., data/file.pdf). Depending on the execution context, the Agents often failed to find the file, reporting "File not found."
-
-Inefficient Prompting (Rate Limit Throttling): The sequential execution of 4 agents fired requests too rapidly, overwhelming the API rate limits even with smaller contexts.
-
-✅ The Fixes:
-
-Absolute Paths: Implemented os.path.abspath() to convert relative paths into full system paths before passing them to the Agents. This guarantees the file is always found.
-
-Rate Limiting: Added max_rpm=3 (Requests Per Minute) to the Crew configuration. This introduces a "cool-down" period between agent actions, ensuring the API token bucket has time to refill.
-
-🚀 Setup & Usage
-1. Installation
-Ensure you have Python 3.10+ installed.
-
-Bash
-
+```bash
 pip install -r requirements.txt
-2. Running the Application
-Start the FastAPI server:
-
-Bash
-
-uvicorn main:app --reload
-3. Using the API
-Open your browser and navigate to the Swagger UI: http://127.0.0.1:8000/docs
-
-Locate the POST /analyze endpoint.
-
-Upload a financial PDF file.
-
-Click Execute.
-
-View the detailed analysis in the response body.
-
-📚 API Documentation
-The API is built using FastAPI. Auto-generated interactive documentation is available at /docs (Swagger UI) and /redoc (ReDoc) when the server is running.
