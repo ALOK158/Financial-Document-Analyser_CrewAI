@@ -3,13 +3,15 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+from langchain_community.llms import Groq
+import os
 
+groq_api_key = os.getenv("GROQ_API_KEY")
+groq_llm = Groq(model="mixtral-8x7b", groq_api_key=groq_api_key)
+llm = groq_llm
 from crewai.agents import Agent
 
 from tools import search_tool, FinancialDocumentTool
-
-### Loading LLM
-llm = llm
 
 # Creating an Experienced Financial Analyst agent
 financial_analyst=Agent(
