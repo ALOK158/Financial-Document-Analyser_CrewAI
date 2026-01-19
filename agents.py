@@ -7,7 +7,13 @@ from langchain_community.llms import Groq
 import os
 
 groq_api_key = os.getenv("GROQ_API_KEY")
-groq_llm = Groq(model="mixtral-8x7b", groq_api_key=groq_api_key)
+groq_llm = Groq(
+    model="mixtral-8x7b",
+    temperature=0.3,  # more analytical
+    max_tokens=1024,
+    groq_api_key=groq_api_key
+)
+
 llm = groq_llm
 from crewai.agents import Agent
 
