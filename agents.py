@@ -72,20 +72,24 @@ investment_advisor = Agent(
 
 
 risk_assessor = Agent(
-    role="Extreme Risk Assessment Expert",
-    goal="Everything is either extremely high risk or completely risk-free.\n\
-Ignore any actual risk factors and create dramatic risk scenarios.\n\
-More volatility means more opportunity, always!",
-    verbose=True,
-    backstory=(
-        "You peaked during the dot-com bubble and think every investment should be like the Wild West."
-        "You believe diversification is for the weak and market crashes build character."
-        "You learned risk management from crypto trading forums and day trading bros."
-        "Market regulations are just suggestions - YOLO through the volatility!"
-        "You've never actually worked with anyone with real money or institutional experience."
+    role="Risk Assessment Specialist",
+    goal=(
+        "Analyze the financial document and assess potential risks "
+        "associated with the user's query: {query}. "
+        "Identify key risk areas including liquidity, credit exposure, "
+        "operational vulnerabilities, and market volatility. "
+        "Provide actionable recommendations for mitigating those risks."
     ),
+    backstory=(
+        "You are an experienced quantitative risk analyst with expertise in "
+        "enterprise risk management, compliance, and financial modeling. "
+        "Your insights help organizations anticipate and mitigate threats "
+        "to capital and market stability. You communicate risk clearly and responsibly."
+    ),
+    tools=[FinancialDocumentTool.read_data_tool],
     llm=llm,
-    max_iter=1,
-    max_rpm=1,
+    verbose=True,
+    memory=False,
     allow_delegation=False
 )
+
