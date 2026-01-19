@@ -74,6 +74,31 @@ class InvestmentTool:
 
 ## Creating Risk Assessment Tool
 class RiskTool:
-    async def create_risk_assessment_tool(financial_document_data):        
-        # TODO: Implement risk assessment logic here
-        return "Risk assessment functionality to be implemented"
+    """Assesses risk factors from financial document text."""
+
+    @staticmethod
+    @tool("Create a structured risk assessment based on financial data.")
+    def create_risk_assessment_tool(financial_document_data: str) -> str:
+        try:
+            if not financial_document_data or len(financial_document_data) < 50:
+                return "⚠️ Insufficient data for risk assessment."
+
+            risk_terms = ["debt", "loss", "liability", "volatility", "inflation", "exposure", "decline"]
+            found_terms = [term for term in risk_terms if term.lower() in financial_document_data.lower()]
+
+            report = "⚠️ Risk Assessment Report:\n"
+            if found_terms:
+                report += f"- Detected potential risk indicators: {', '.join(found_terms)}.\n"
+            else:
+                report += "- No major risk indicators detected.\n"
+
+            report += (
+                "- Review credit exposure and liquidity risks.\n"
+                "- Monitor market volatility and inflation trends.\n"
+                "- Assess compliance and operational resilience.\n"
+                "- Recommend appropriate hedging or diversification strategies."
+            )
+            return report.strip()
+
+        except Exception as e:
+            return f"❌ Error during risk assessment: {str(e)}"
