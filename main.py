@@ -31,54 +31,49 @@ def run_crew(query: str, file_path: str = "data/sample.pdf"):
     return result
 
 
+app = FastAPI(title="Financial Document Analyzer")
+
 @app.get("/")
 async def root():
     """Health check endpoint"""
-    return {"message": "Financial Document Analyzer API is running"}
+    return {"message": "✅ Financial Document Analyzer API is running"}
 
 @app.post("/analyze")
-async def analyze_financial_document(
+async def analyze_document(
     file: UploadFile = File(...),
-    query: str = Form(default="Analyze this financial document for investment insights")
+    query: str = Form(default="Analyze the uploaded financial report comprehensively.")
 ):
-    """Analyze financial document and provide comprehensive investment recommendations"""
-    
+    """Analyze financial document and generate investment, risk, and performance insights."""
     file_id = str(uuid.uuid4())
     file_path = f"data/financial_document_{file_id}.pdf"
-    
+
     try:
-        # Ensure data directory exists
         os.makedirs("data", exist_ok=True)
-        
-        # Save uploaded file
         with open(file_path, "wb") as f:
-            content = await file.read()
-            f.write(content)
-        
-        # Validate query
-        if query=="" or query is None:
-            query = "Analyze this financial document for investment insights"
-            
-        # Process the financial document with all analysts
+            f.write(await file.read())
+
+        if not query.strip():
+            query = "Analyze the uploaded financial report comprehensively."
+
         response = run_crew(query=query.strip(), file_path=file_path)
-        
+
         return {
             "status": "success",
             "query": query,
-            "analysis": str(response),
-            "file_processed": file.filename
+            "file_processed": file.filename,
+            "crew_summary": str(response)
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing financial document: {str(e)}")
-    
+
     finally:
-        # Clean up uploaded file
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
-            except:
-                pass  # Ignore cleanup errors
+            except Exception:
+                pass  # ignore cleanup issues
+
 
 if __name__ == "__main__":
     import uvicorn
