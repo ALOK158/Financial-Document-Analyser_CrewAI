@@ -10,31 +10,35 @@ from crewai_tools.tools.serper_dev_tool import SerperDevTool
 search_tool = SerperDevTool()
 
 ## Creating custom pdf reader tool
-class FinancialDocumentTool():
-    async def read_data_tool(path='data/sample.pdf'):
-        """Tool to read data from a pdf file from a path
+class FinancialDocumentTool:
+    """Reads, cleans, and formats PDF-based financial documents."""
 
-        Args:
-            path (str, optional): Path of the pdf file. Defaults to 'data/sample.pdf'.
+    @staticmethod
+    @tool("Read and clean data from a financial document PDF file.")
+    def read_data_tool(path: str = "data/sample.pdf") -> str:
+        try:
+            if not os.path.exists(path):
+                return f"⚠️ Error: File not found at path '{path}'. Please upload a valid PDF."
 
-        Returns:
-            str: Full Financial Document file
-        """
-        
-        docs = Pdf(file_path=path).load()
+            if not path.lower().endswith(".pdf"):
+                return f"⚠️ Error: Unsupported file type. Expected a .pdf file, got '{os.path.splitext(path)[1]}'."
 
-        full_report = ""
-        for data in docs:
-            # Clean and format the financial document data
-            content = data.page_content
-            
-            # Remove extra whitespaces and format properly
-            while "\n\n" in content:
-                content = content.replace("\n\n", "\n")
-                
-            full_report += content + "\n"
-            
-        return full_report
+            reader = PDFReadTool(file_path=path)
+            docs = reader.load()
+
+            if not docs:
+                return "⚠️ Error: No readable content found in the uploaded PDF."
+
+            full_report = ""
+            for doc in docs:
+                content = " ".join(doc.page_content.strip().split())
+                full_report += content + "\n"
+
+            return full_report.strip()
+
+        except Exception as e:
+            return f"❌ An unexpected error occurred while reading the document: {str(e)}"
+
 
 ## Creating Investment Analysis Tool
 class InvestmentTool:
