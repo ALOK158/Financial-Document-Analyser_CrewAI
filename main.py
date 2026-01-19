@@ -1,6 +1,8 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 import os
 import uuid
+from dotenv import load_dotenv
+load_dotenv()
 
 from crewai import Crew, Process
 from agents import financial_analyst, verifier, investment_advisor, risk_assessor
