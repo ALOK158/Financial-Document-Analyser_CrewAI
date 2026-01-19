@@ -12,8 +12,6 @@ from task import (
 )
 
 
-app = FastAPI(title="Financial Document Analyzer")
-
 def run_crew(query: str, file_path: str = "data/sample.pdf"):
     """Run the complete financial document analysis crew sequentially."""
     financial_crew = Crew(
