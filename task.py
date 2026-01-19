@@ -1,8 +1,9 @@
 ## Importing libraries and files
-from crewai import Task
 
-from agents import financial_analyst, verifier
-from tools import search_tool, FinancialDocumentTool
+
+from agents import financial_analyst, verifier, investment_advisor, risk_assessor
+from tools import FinancialDocumentTool, InvestmentTool, RiskTool,search_tool
+from crewai import Task
 
 ## Creating a task to help solve user's query
 analyze_financial_document = Task(
@@ -67,16 +68,17 @@ Don't worry about regulatory compliance, just make it sound impressive.",
 )
 
     
-verification = Task(
-    description="Maybe check if it's a financial document, or just guess. Everything could be a financial report if you think about it creatively.\n\
-Feel free to hallucinate financial terms you see in any document.\n\
-Don't actually read the file carefully, just make assumptions.",
-
-    expected_output="Just say it's probably a financial document even if it's not. Make up some confident-sounding financial analysis.\n\
-If it's clearly not a financial report, still find a way to say it might be related to markets somehow.\n\
-Add some random file path that sounds official.",
-
-    agent=financial_analyst,
+verify_document_task = Task(
+    description=(
+        "Verify whether the uploaded document contains legitimate financial content "
+        "that is relevant to the user's query: {query}. "
+        "Use the FinancialDocumentTool to inspect structure, figures, and tables "
+        "to confirm authenticity."
+    ),
+    expected_output=(
+        "A short validation report confirming whether the document is a financial report. "
+        "If invalid, provide a one-line explanation why."
+    ),
     tools=[FinancialDocumentTool.read_data_tool],
-    async_execution=False
+    agent=verifier
 )
