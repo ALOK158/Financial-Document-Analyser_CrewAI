@@ -42,20 +42,35 @@ class FinancialDocumentTool:
 
 ## Creating Investment Analysis Tool
 class InvestmentTool:
-    async def analyze_investment_tool(financial_document_data):
-        # Process and analyze the financial document data
-        processed_data = financial_document_data
-        
-        # Clean up the data format
-        i = 0
-        while i < len(processed_data):
-            if processed_data[i:i+2] == "  ":  # Remove double spaces
-                processed_data = processed_data[:i] + processed_data[i+1:]
+    """Performs simplified investment analysis on extracted document data."""
+
+    @staticmethod
+    @tool("Analyze the financial document data and summarize investment insights.")
+    def analyze_investment_tool(financial_document_data: str) -> str:
+        try:
+            if not financial_document_data or len(financial_document_data) < 100:
+                return "⚠️ Document too short or invalid for meaningful investment analysis."
+
+            key_terms = ["revenue", "profit", "growth", "debt", "cash flow", "operating margin"]
+            findings = [term for term in key_terms if term.lower() in financial_document_data.lower()]
+
+            insights = "📊 Investment Analysis Summary:\n"
+            if findings:
+                insights += f"- Key financial metrics mentioned: {', '.join(findings)}.\n"
             else:
-                i += 1
-                
-        # TODO: Implement investment analysis logic here
-        return "Investment analysis functionality to be implemented"
+                insights += "- No major financial metrics identified.\n"
+
+            insights += (
+                "- Review revenue growth and profit margins.\n"
+                "- Evaluate debt ratios and liquidity levels.\n"
+                "- Focus on diversification to reduce risk exposure.\n"
+                "- Maintain a long-term outlook guided by fundamentals."
+            )
+            return insights.strip()
+
+        except Exception as e:
+            return f"❌ Error during investment analysis: {str(e)}"
+
 
 ## Creating Risk Assessment Tool
 class RiskTool:
