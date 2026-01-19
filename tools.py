@@ -1,52 +1,62 @@
-## Importing libraries and files
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from crewai_tools import tool, PDFReadTool, SerperDevTool
+# ✅ Correct imports for your environment (CrewAI Tools 1.8.1)
+from langchain.tools import tool
+from crewai_tools.tools import FileReadTool, SerperDevTool
 
-
-## Creating search tool
+# ----------------------------------------
+# 🔍 Search Tool
+# ----------------------------------------
 search_tool = SerperDevTool()
 
-## Creating custom pdf reader tool
+# ----------------------------------------
+# 📄 Financial Document Reader Tool
+# ----------------------------------------
 class FinancialDocumentTool:
     """Reads, cleans, and formats PDF-based financial documents."""
 
     @staticmethod
     @tool("Read and clean data from a financial document PDF file.")
     def read_data_tool(path: str = "data/sample.pdf") -> str:
+        """
+        Reads, cleans, and formats PDF-based financial documents.
+        Handles missing files and unsupported formats safely.
+        """
         try:
             if not os.path.exists(path):
                 return f"⚠️ Error: File not found at path '{path}'. Please upload a valid PDF."
 
             if not path.lower().endswith(".pdf"):
-                return f"⚠️ Error: Unsupported file type. Expected a .pdf file, got '{os.path.splitext(path)[1]}'."
+                return f"⚠️ Error: Unsupported file type. Expected a .pdf file, got '{os.path.splitext(path)[1]}' instead."
 
-            reader = PDFReadTool(file_path=path)
+            reader = FileReadTool(file_path=path)
             docs = reader.load()
 
             if not docs:
                 return "⚠️ Error: No readable content found in the uploaded PDF."
 
-            full_report = ""
-            for doc in docs:
-                content = " ".join(doc.page_content.strip().split())
-                full_report += content + "\n"
-
+            full_report = " ".join(doc.page_content.strip() for doc in docs)
             return full_report.strip()
 
         except Exception as e:
             return f"❌ An unexpected error occurred while reading the document: {str(e)}"
 
 
-## Creating Investment Analysis Tool
+# ----------------------------------------
+# 💹 Investment Analysis Tool
+# ----------------------------------------
 class InvestmentTool:
     """Performs simplified investment analysis on extracted document data."""
 
     @staticmethod
     @tool("Analyze the financial document data and summarize investment insights.")
     def analyze_investment_tool(financial_document_data: str) -> str:
+        """
+        Analyzes financial document text to identify investment-relevant insights
+        such as profitability, growth, and cash flow indicators.
+        """
         try:
             if not financial_document_data or len(financial_document_data) < 100:
                 return "⚠️ Document too short or invalid for meaningful investment analysis."
@@ -72,13 +82,19 @@ class InvestmentTool:
             return f"❌ Error during investment analysis: {str(e)}"
 
 
-## Creating Risk Assessment Tool
+# ----------------------------------------
+# ⚠️ Risk Assessment Tool
+# ----------------------------------------
 class RiskTool:
     """Assesses risk factors from financial document text."""
 
     @staticmethod
     @tool("Create a structured risk assessment based on financial data.")
     def create_risk_assessment_tool(financial_document_data: str) -> str:
+        """
+        Evaluates the financial text for risk-related indicators such as
+        debt, losses, market volatility, and liquidity exposure.
+        """
         try:
             if not financial_document_data or len(financial_document_data) < 50:
                 return "⚠️ Insufficient data for risk assessment."
