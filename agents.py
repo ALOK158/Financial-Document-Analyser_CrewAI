@@ -1,23 +1,21 @@
-## Importing libraries and files
+# agents.py (top section)
+
 import os
 from dotenv import load_dotenv
 load_dotenv()
+from crewai import LLM
 
-from langchain_community.llms import Groq
-import os
+from langchain_groq import ChatGroq  # ✅ the official Groq LLM
+from crewai import Agent
 
-groq_api_key = os.getenv("GROQ_API_KEY")
-groq_llm = Groq(
-    model="mixtral-8x7b",
-    temperature=0.3,  # more analytical
-    max_tokens=1024,
-    groq_api_key=groq_api_key
-)
+# ✅ Import the lowercase variable name
+from tools import search_tool, financial_document_tool, investment_analysis_tool, risk_assessment_tool
+# Setting up Groq LLM
+# ✅ NEW: Use the string format. CrewAI will automatically use the GROQ_API_KEY from your .env
+# Now this will work:
+# Use this smaller, faster model to avoid rate limits
+llm = "groq/llama-3.1-8b-instant"
 
-llm = groq_llm
-from crewai.agents import Agent
-
-from tools import search_tool, FinancialDocumentTool
 
 # Creating an Experienced Financial Analyst agent
 financial_analyst=Agent(
@@ -26,14 +24,15 @@ financial_analyst=Agent(
     "Provide insightful summaries including profitability, liquidity, "
     "growth metrics, and potential market opportunities based on the data.",
     verbose=True,
-    memory=True,
+    memory=False,
     backstory=(
        "You are an experienced financial analyst with over a decade "
         "of experience in interpreting corporate financial statements, "
         "market trends, and balance sheet metrics. Your analysis is "
         "precise, data-driven, and avoids speculation."
     ),
-    tools=[FinancialDocumentTool.read_data_tool],
+    # ✅ Pass the instantiated variable directly
+    tools=[financial_document_tool],
     llm=llm,
     allow_delegation=True  # Allow delegation to other specialists
 )
@@ -73,7 +72,7 @@ investment_advisor = Agent(
     tools=[search_tool],
     llm=llm,
     verbose=True,
-    memory=True,
+    memory=False,
     allow_delegation=False
 )
 
@@ -94,7 +93,7 @@ risk_assessor = Agent(
         "Your insights help organizations anticipate and mitigate threats "
         "to capital and market stability. You communicate risk clearly and responsibly."
     ),
-    tools=[FinancialDocumentTool.read_data_tool],
+    tools=[risk_assessment_tool],
     llm=llm,
     verbose=True,
     memory=False,

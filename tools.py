@@ -1,29 +1,29 @@
 import os
 from dotenv import load_dotenv
+
+# 1. Import BaseTool from the main crewai package
+from crewai.tools import BaseTool 
+
+# 2. Import specific tools from the crewai_tools package
+from crewai_tools import FileReadTool, SerperDevTool
+
 load_dotenv()
 
-# ✅ Correct imports for your environment (CrewAI Tools 1.8.1)
-from langchain.tools import tool
-from crewai_tools.tools import FileReadTool, SerperDevTool
+# ... rest of your code ...
 
 # ----------------------------------------
-# 🔍 Search Tool
+# 🔍 Search Tool (Pre-made CrewAI Tool)
 # ----------------------------------------
 search_tool = SerperDevTool()
 
 # ----------------------------------------
 # 📄 Financial Document Reader Tool
 # ----------------------------------------
-class FinancialDocumentTool:
-    """Reads, cleans, and formats PDF-based financial documents."""
+class FinancialDocumentTool(BaseTool):
+    name: str = "Financial Document Reader"
+    description: str = "Reads, cleans, and formats PDF-based financial documents. Takes a file path as input."
 
-    @staticmethod
-    @tool("Read and clean data from a financial document PDF file.")
-    def read_data_tool(path: str = "data/sample.pdf") -> str:
-        """
-        Reads, cleans, and formats PDF-based financial documents.
-        Handles missing files and unsupported formats safely.
-        """
+    def _run(self, path: str = "data/sample.pdf") -> str:
         try:
             if not os.path.exists(path):
                 return f"⚠️ Error: File not found at path '{path}'. Please upload a valid PDF."
@@ -31,32 +31,33 @@ class FinancialDocumentTool:
             if not path.lower().endswith(".pdf"):
                 return f"⚠️ Error: Unsupported file type. Expected a .pdf file, got '{os.path.splitext(path)[1]}' instead."
 
+            # Use CrewAI's FileReadTool internally to read the raw file
             reader = FileReadTool(file_path=path)
-            docs = reader.load()
+            # Note: FileReadTool._run returns the content directly as a string usually, 
+            # but if using the class wrapper, we might need to handle it differently.
+            # Here we initialize and run it.
+            content = reader._run(file_path=path)
 
-            if not docs:
+            if not content:
                 return "⚠️ Error: No readable content found in the uploaded PDF."
 
-            full_report = " ".join(doc.page_content.strip() for doc in docs)
-            return full_report.strip()
+            return content.strip()
 
         except Exception as e:
             return f"❌ An unexpected error occurred while reading the document: {str(e)}"
+
+# Instantiate the tool
+financial_document_tool = FinancialDocumentTool()
 
 
 # ----------------------------------------
 # 💹 Investment Analysis Tool
 # ----------------------------------------
-class InvestmentTool:
-    """Performs simplified investment analysis on extracted document data."""
+class InvestmentTool(BaseTool):
+    name: str = "Investment Analysis Tool"
+    description: str = "Analyze the financial document data and summarize investment insights."
 
-    @staticmethod
-    @tool("Analyze the financial document data and summarize investment insights.")
-    def analyze_investment_tool(financial_document_data: str) -> str:
-        """
-        Analyzes financial document text to identify investment-relevant insights
-        such as profitability, growth, and cash flow indicators.
-        """
+    def _run(self, financial_document_data: str) -> str:
         try:
             if not financial_document_data or len(financial_document_data) < 100:
                 return "⚠️ Document too short or invalid for meaningful investment analysis."
@@ -81,20 +82,18 @@ class InvestmentTool:
         except Exception as e:
             return f"❌ Error during investment analysis: {str(e)}"
 
+# Instantiate the tool
+investment_analysis_tool = InvestmentTool()
+
 
 # ----------------------------------------
 # ⚠️ Risk Assessment Tool
 # ----------------------------------------
-class RiskTool:
-    """Assesses risk factors from financial document text."""
+class RiskTool(BaseTool):
+    name: str = "Risk Assessment Tool"
+    description: str = "Create a structured risk assessment based on financial data."
 
-    @staticmethod
-    @tool("Create a structured risk assessment based on financial data.")
-    def create_risk_assessment_tool(financial_document_data: str) -> str:
-        """
-        Evaluates the financial text for risk-related indicators such as
-        debt, losses, market volatility, and liquidity exposure.
-        """
+    def _run(self, financial_document_data: str) -> str:
         try:
             if not financial_document_data or len(financial_document_data) < 50:
                 return "⚠️ Insufficient data for risk assessment."
@@ -118,3 +117,6 @@ class RiskTool:
 
         except Exception as e:
             return f"❌ Error during risk assessment: {str(e)}"
+
+# Instantiate the tool
+risk_assessment_tool = RiskTool()
