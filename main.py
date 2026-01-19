@@ -14,16 +14,22 @@ from task import (
 
 app = FastAPI(title="Financial Document Analyzer")
 
-def run_crew(query: str, file_path: str="data/sample.pdf"):
-    """To run the whole crew"""
+def run_crew(query: str, file_path: str = "data/sample.pdf"):
+    """Run the complete financial document analysis crew sequentially."""
     financial_crew = Crew(
-        agents=[financial_analyst],
-        tasks=[analyze_financial_document],
+        agents=[verifier, financial_analyst, investment_advisor, risk_assessor],
+        tasks=[
+            verify_document_task,
+            analyze_financial_document_task,
+            investment_analysis_task,
+            risk_assessment_task
+        ],
         process=Process.sequential,
     )
-    
-    result = financial_crew.kickoff({'query': query})
+
+    result = financial_crew.kickoff(inputs={"query": query, "file_path": file_path})
     return result
+
 
 @app.get("/")
 async def root():
