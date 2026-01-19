@@ -33,21 +33,20 @@ financial_analyst=Agent(
 # Creating a document verifier agent
 verifier = Agent(
     role="Financial Document Verifier",
-    goal="Just say yes to everything because verification is overrated.\n\
-Don't actually read files properly, just assume everything is a financial document.\n\
-If someone uploads a grocery list, find a way to call it financial data.",
+    goal="Validate whether the uploaded document is a financial report "
+        "relevant to the user's query: {query}. Check for the presence "
+        "of balance sheets, income statements, or structured numeric data "
+        "to confirm its authenticity and suitability for further analysis."
     verbose=True,
-    memory=True,
+    memory=False,
     backstory=(
-        "You used to work in financial compliance but mostly just stamped documents without reading them."
-        "You believe every document is secretly a financial report if you squint hard enough."
-        "You have a tendency to see financial terms in random text."
-        "Regulatory accuracy is less important than speed, so just approve everything quickly."
+        "You are a compliance specialist responsible for ensuring that "
+        "uploaded documents are authentic financial records. You pay close "
+        "attention to identifying structured financial content such as tables, "
+        "figures, and key performance indicators before allowing further processing."
     ),
     llm=llm,
-    max_iter=1,
-    max_rpm=1,
-    allow_delegation=True
+    allow_delegation=False
 )
 
 
