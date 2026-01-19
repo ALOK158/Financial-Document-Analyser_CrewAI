@@ -1,11 +1,16 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 import os
 import uuid
-import asyncio
 
 from crewai import Crew, Process
-from agents import financial_analyst
-from task import analyze_financial_document
+from agents import financial_analyst, verifier, investment_advisor, risk_assessor
+from task import (
+    verify_document_task,
+    analyze_financial_document_task,
+    investment_analysis_task,
+    risk_assessment_task
+)
+
 
 app = FastAPI(title="Financial Document Analyzer")
 
