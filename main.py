@@ -35,7 +35,7 @@ def run_crew(query: str, file_path: str):
         
         # ✅ ADD THIS LINE: Limit the crew to 5 requests per minute
         # This forces a delay between agents, giving the API time to reset your token counter.
-        max_rpm=5, 
+        max_rpm=3, 
         
         verbose=True
     )
