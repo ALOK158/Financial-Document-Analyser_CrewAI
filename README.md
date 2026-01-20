@@ -1,65 +1,12 @@
-# 🏦 Financial Document Analyzer - Debugging & Optimization Report
+# Financial Document Analyzer - Debugging & Optimization Report
 
 ## 📋 Project Overview
 This repository contains the fixed and optimized codebase for the **Financial Document Analyzer**. The original system was plagued by critical runtime errors, missing dependencies, and adversarial prompts designed to generate hallucinations.
 
 This report details the debugging process, categorizing fixes into **Deterministic Bugs** (syntax/logic errors) and **Inefficient Prompts** (AI behavior optimization).
 
+
 ---
-
-## 🏗️ System Architecture & Agent Flow
-
-This project has been upgraded from a simple synchronous script to a **distributed asynchronous microservice**.
-
-### 1. High-Level Architecture (System)
-The user interacts with a FastAPI server which dispatches heavy AI tasks to a background Redis queue.
-
-```mermaid
-graph TD
-    subgraph Client_Side
-        User[User / Client]
-    end
-
-    subgraph Server_Side [FastAPI Server]
-        API[API Endpoint /analyze]
-        DB[(SQLite Database)]
-    end
-
-    subgraph Async_Infrastructure [Background Infrastructure]
-        Redis[Redis Task Queue]
-    end
-
-    subgraph Worker_Node [Celery Worker]
-        Worker[Worker Process]
-        Crew[CrewAI Orchestrator]
-    end
-
-    %% Flow Connections
-    User -- "1. Upload PDF" --> API
-    API -- "2. Create Task (PENDING)" --> DB
-    API -- "3. Dispatch Job" --> Redis
-    API -- "4. Return Task ID" --> User
-    
-    Redis -- "5. Consume Job" --> Worker
-    Worker -- "6. Initialize Crew" --> Crew
-    Crew -- "7. Final Result" --> Worker
-    Worker -- "8. Update Task (SUCCESS)" --> DB
-graph LR
-    Document[Financial Document PDF] --> Tool[PDF Reader Tool]
-    
-    subgraph Agent_Workflow [Sequential Process]
-        Analyst[Senior Financial Analyst]
-        Verifier[Data Verification Expert]
-        Risk[Risk Assessment Specialist]
-        Strategy[Investment Strategist]
-    end
-    
-    Tool -- "Extracted Text" --> Analyst
-    Analyst -- "Draft Analysis" --> Verifier
-    Verifier -- "Verified Data" --> Risk
-    Risk -- "Risk Report" --> Strategy
-    Strategy -- "Final Recommendation" --> Output[Final Report]
-
 
 ## 🛠️ Codebase Fixes (File by File Analysis)
 
