@@ -2,12 +2,11 @@ import os
 from celery import Celery
 from crewai import Crew, Process
 from agents import financial_analyst
-from task import analyze_financial_document
+from task import analyze_financial_document_task 
 from database import SessionLocal
 from models import AnalysisResult
 
-# Configure Celery to use Redis
-# Ensure your Redis server is running on localhost:6379
+# Configure Celery to use Redis (or Memurai on Windows)
 celery_app = Celery(
     "financial_analyzer",
     broker="redis://localhost:6379/0",
@@ -23,14 +22,18 @@ def run_crew_task(self, query: str, file_path: str, db_id: int):
         # 1. Initialize the Crew
         financial_crew = Crew(
             agents=[financial_analyst],
-            tasks=[analyze_financial_document],
+            tasks=[analyze_financial_document_task], 
             process=Process.sequential,
             max_rpm=3 # Keep our safety limit!
         )
 
         # 2. Run the analysis
-        # Note: We pass the query in inputs
-        result = financial_crew.kickoff(inputs={'query': query})
+        # ✅ FIX: We added 'file_path' to the inputs dictionary below
+        result = financial_crew.kickoff(inputs={
+            'query': query, 
+            'file_path': file_path
+        })
+        
         result_str = str(result)
 
         # 3. Update Database with Success
