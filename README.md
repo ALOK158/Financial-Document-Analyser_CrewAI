@@ -85,11 +85,33 @@ This project is built on a specific stack to ensure high performance and stabili
 ## 🚀 Setup & Usage Instructions
 
 ### 1. Prerequisites
-* Python 3.10 or higher
-* A Groq API Key (Set in `.env`)
+* **Python 3.10+**
+* **Redis Server** (Required for the Task Queue):
+    * *Windows:* Install [Memurai Developer Edition](https://www.memurai.com/) (Redis-compatible for Windows) or run Redis via Docker.
+    * *Linux/Mac:* Install standard Redis (`sudo apt install redis`).
 
 ### 2. Installation
-Install the fixed dependencies (including the added `pdfplumber` and `litellm`):
+1.  Clone the repository:
+    ```bash
+    git clone <your-repo-url>
+    cd <your-repo-folder>
+    ```
 
+2.  Install the fixed dependencies (including `celery`, `redis`, `pdfplumber`, and `litellm`):
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  Create a `.env` file in the root directory and add your Groq API Key:
+    ```env
+    GROQ_API_KEY=gsk_your_actual_api_key_here
+    ```
+
+### 3. Running the Application
+Because this is now an asynchronous microservice, you need **3 separate terminals** running simultaneously:
+
+**Terminal 1: Start Redis/Memurai** (Skip if running as a background service)
 ```bash
-pip install -r requirements.txt
+# Verify it is running
+memurai-cli ping
+# Output should be: "PONG"
