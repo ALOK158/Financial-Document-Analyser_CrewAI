@@ -42,6 +42,26 @@ This report details the debugging process, categorizing fixes into **Determinist
 | **Deterministic Bug** | **Relative Path Errors:** Files were saved to `data/`, but Agents often failed to resolve this path depending on the execution context. | **Fixed:** Implemented `os.path.abspath()` to convert all paths to absolute system paths before execution. |
 | **Inefficient Prompt** | **API Throttling:** The sequential execution of 4 agents fired requests instantly, hitting rate limits immediately. | **Fixed:** Added `max_rpm=3` to the `Crew` config. This introduces a "cool-down" delay between agents, allowing the token bucket to refill. |
 
+
+## 🌟 Bonus Features (Advanced Architecture)
+
+Beyond the standard requirements, this project implements a production-ready **Asynchronous Architecture**:
+
+### 1. Asynchronous Task Queue (Celery + Redis)
+* **Why:** To prevent the API from blocking during long-running AI analysis.
+* **Implementation:** Used **Celery** with **Redis** (via Memurai on Windows) to offload document processing to background workers.
+* **Benefit:** The API returns a Task ID immediately, allowing the system to handle high concurrency without timeouts.
+
+### 2. Database Persistence (SQLite + SQLAlchemy)
+* **Why:** To maintain a history of analyzed documents and ensure data isn't lost if the client disconnects.
+* **Implementation:** Integrated **SQLAlchemy** with SQLite.
+* **Schema:** Stores `task_id`, `status` (PENDING/SUCCESS/FAILED), `result_text`, and `created_at`.
+
+### 3. Robust Error Handling
+* **Status Tracking:** The system tracks task failures in the database. If an AI agent fails, the user sees a "FAILED" status with the error message instead of a generic 500 error.
+
+
+
 ---
 
 ## 🚀 Setup & Usage Instructions
