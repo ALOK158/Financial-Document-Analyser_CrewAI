@@ -89,6 +89,25 @@ The final system is **stable, compliant, and scalable**, suitable for real-world
   - `created_at`
 
 ---
+
+### 🛡️ Robust Error Handling
+
+- Failures are recorded at task level
+- Users receive meaningful error messages instead of generic 500 responses
+
+---
+
+## 🧰 Tech Stack & Configuration
+
+- **LLM Engine:** Groq (`llama-3.1-8b-instant`)
+- **Orchestration:** CrewAI (latest version)
+- **LLM Gateway:** LiteLLM v1.81.0
+- **PDF Processing:** pdfplumber
+- **Backend:** FastAPI
+- **Async Processing:** Celery + Redis
+- **Persistence:** SQLite with SQLAlchemy ORM
+
+---
 ## 🚀 Setup & Usage Instructions
 
 ### 1. Prerequisites
