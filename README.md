@@ -61,6 +61,23 @@ Beyond the standard requirements, this project implements a production-ready **A
 * **Status Tracking:** The system tracks task failures in the database. If an AI agent fails, the user sees a "FAILED" status with the error message instead of a generic 500 error.
 
 
+## 🛠️ Tech Stack & Configuration
+
+This project is built on a specific stack to ensure high performance and stability:
+
+* **LLM Engine:** [Groq](https://groq.com/) (Model: `llama-3.1-8b-instant`)
+    * *Why:* Chosen for its near-instant inference speed (300+ tokens/s), which is critical for real-time financial analysis agents.
+* **Orchestration:** [CrewAI](https://www.crewai.com/) **(Latest Version)**
+    * *Critical Fix:* Upgraded to the latest version to resolve persistent `chromodb` dependency errors found in older releases.
+    * *Feature Usage:* Enabled `max_rpm` (Rate Limiting), a feature unavailable in older versions, to prevent hitting the Groq API limits (429 Errors).
+* **LLM Gateway:** [LiteLLM](https://docs.litellm.ai/) **v1.81.0**
+    * *Why:* Used to stabilize the connection between CrewAI and the Groq API, preventing authentication & model-not-found errors.
+* **PDF Processing:** `pdfplumber`
+    * *Why:* Replaced the default file reader to handle binary PDF streams correctly on Windows systems.
+* **Backend & Async (Bonus):**
+    * **FastAPI:** High-performance web framework.
+    * **Celery + Redis:** For distributed, asynchronous task management.
+    * **SQLAlchemy (SQLite):** For robust data persistence.
 
 ---
 
