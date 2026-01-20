@@ -11,7 +11,9 @@ This report details the debugging process, categorizing fixes into **Determinist
 
 This project has been upgraded from a simple synchronous script to a **distributed asynchronous microservice**.
 
-### 1. High-Level Architecture
+### 1. High-Level Architecture (System)
+The user interacts with a FastAPI server which dispatches heavy AI tasks to a background Redis queue.
+
 ```mermaid
 graph TD
     subgraph Client_Side
@@ -42,8 +44,6 @@ graph TD
     Worker -- "6. Initialize Crew" --> Crew
     Crew -- "7. Final Result" --> Worker
     Worker -- "8. Update Task (SUCCESS)" --> DB
-
----
 graph LR
     Document[Financial Document PDF] --> Tool[PDF Reader Tool]
     
