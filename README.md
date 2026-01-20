@@ -100,7 +100,7 @@ The final system is **stable, compliant, and scalable**, suitable for real-world
 ## 🧰 Tech Stack & Configuration
 
 - **LLM Engine:** Groq (`llama-3.1-8b-instant`)
-- **Orchestration:** CrewAI (latest version)
+- **Orchestration:** CrewAI (1.8)
 - **LLM Gateway:** LiteLLM v1.81.0
 - **PDF Processing:** pdfplumber
 - **Backend:** FastAPI
@@ -141,3 +141,17 @@ Because this is now an asynchronous microservice, you need **3 separate terminal
 # Verify it is running
 memurai-cli ping
 # Output should be: "PONG"
+```
+**Terminal 2: Start the Celery Worker** (The Background AI)
+```
+Bash
+
+# On Windows, the '--pool=solo' flag is CRITICAL
+celery -A celery_worker.celery_app worker --pool=solo --loglevel=info
+```
+**Terminal 3: Start the FastAPI Server** (The API)
+```
+Bash
+
+uvicorn main:app --reload
+```
