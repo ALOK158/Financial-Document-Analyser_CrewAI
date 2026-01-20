@@ -51,9 +51,9 @@ class FinancialDocumentTool(BaseTool):
             
             full_text = "\n".join(text_content)
             
-            # 4. SAFETY CUT: Limit to 5000 characters
-            if len(full_text) > 5000:
-                full_text = full_text[:5000] + "\n... [TRUNCATED TO PREVENT RATE LIMIT ERROR]"
+            # 4. SAFETY CUT: Limit to 1000 characters
+            if len(full_text) > 1000:
+                full_text = full_text[:1000] + "\n... [TRUNCATED TO PREVENT RATE LIMIT ERROR]"
             
             if not full_text:
                 return "⚠️ Error: The PDF appears to be empty."
