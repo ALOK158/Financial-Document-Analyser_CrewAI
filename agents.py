@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from crewai import LLM
 
-from langchain_groq import ChatGroq  # ✅ the official Groq LLM
+from langchain_groq import ChatGroq  
 from crewai import Agent
 
 # ✅ Import the lowercase variable name

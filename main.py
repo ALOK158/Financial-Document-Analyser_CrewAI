@@ -1,111 +1,82 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends
+from sqlalchemy.orm import Session
 import os
 import uuid
-from dotenv import load_dotenv
+import shutil
 
-# Load env variables
-load_dotenv()
+# Import our new DB and Worker modules
+from database import engine, Base, get_db
+from models import AnalysisResult
+from celery_worker import run_crew_task
 
-from crewai import Crew, Process
-# Import your agents and tasks
-from agents import financial_analyst, verifier, investment_advisor, risk_assessor
-from task import (
-    verify_document_task,
-    analyze_financial_document_task,
-    investment_analysis_task,
-    risk_assessment_task
-)
+# Create DB tables automatically
+Base.metadata.create_all(bind=engine)
 
-# Initialize FastAPI
-app = FastAPI(title="Financial Document Analyzer")
-
-# main.py
-
-def run_crew(query: str, file_path: str):
-    """Run the complete financial document analysis crew sequentially."""
-    financial_crew = Crew(
-        agents=[verifier, financial_analyst, investment_advisor, risk_assessor],
-        tasks=[
-            verify_document_task,
-            analyze_financial_document_task,
-            investment_analysis_task,
-            risk_assessment_task
-        ],
-        process=Process.sequential,
-        
-        # ✅ ADD THIS LINE: Limit the crew to 5 requests per minute
-        # This forces a delay between agents, giving the API time to reset your token counter.
-        max_rpm=3, 
-        
-        verbose=True
-    )
-
-    result = financial_crew.kickoff(inputs={"query": query, "file_path": file_path})
-    return result
-
-@app.get("/")
-async def root():
-    """Health check endpoint"""
-    return {"message": "✅ Financial Document Analyzer API is running"}
+app = FastAPI(title="Financial Document Analyzer (Async)")
 
 @app.post("/analyze")
-async def analyze_document(
+async def analyze_financial_document(
     file: UploadFile = File(...),
-    query: str = Form(default="Analyze the uploaded financial report comprehensively.")
+    query: str = Form(default="Analyze this financial document"),
+    db: Session = Depends(get_db)
 ):
-    """Analyze financial document and generate investment, risk, and performance insights."""
-    
-    # Generate a unique filename to prevent conflicts
-    file_id = str(uuid.uuid4())
-    filename = f"financial_document_{file_id}.pdf"
-    
-    # Ensure data directory exists
-    os.makedirs("data", exist_ok=True)
-    
-    # Save the file temporarily
-    relative_path = os.path.join("data", filename)
-    
-    # ---------------------------------------------------------
-    # 🔑 CRITICAL FIX 1: Convert to Absolute Path
-    # Agents work best when given the full system path (C:\Users\...)
-    # ---------------------------------------------------------
-    absolute_file_path = os.path.abspath(relative_path)
-
+    """
+    Submit a document for asynchronous analysis.
+    Returns a Task ID to check status later.
+    """
     try:
-        # Write the uploaded file to disk
-        with open(absolute_file_path, "wb") as f:
-            f.write(await file.read())
+        # 1. Save file uniquely
+        file_id = str(uuid.uuid4())
+        # Ensure absolute path for the worker
+        upload_dir = os.path.abspath("data")
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, f"financial_document_{file_id}.pdf")
+        
+        with open(file_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
 
-        if not query.strip():
-            query = "Analyze the uploaded financial report comprehensively."
+        # 2. Create Database Record (Status: PENDING)
+        db_record = AnalysisResult(
+            task_id=file_id, # Using file_id as task_id for simplicity
+            query=query,
+            status="PENDING"
+        )
+        db.add(db_record)
+        db.commit()
+        db.refresh(db_record)
 
-        # ---------------------------------------------------------
-        # 🔑 CRITICAL FIX 2: Pass the ABSOLUTE path to the crew
-        # ---------------------------------------------------------
-        response = run_crew(query=query.strip(), file_path=absolute_file_path)
+        # 3. Dispatch to Celery Worker
+        # This returns immediately, not blocking the server
+        run_crew_task.delay(query=query, file_path=file_path, db_id=db_record.id)
 
         return {
-            "status": "success",
-            "query": query,
-            "file_processed": file.filename,
-            "crew_summary": str(response)
+            "status": "submitted",
+            "task_id": file_id,
+            "message": "Analysis started in background. Check status at /status/{task_id}"
         }
 
     except Exception as e:
-        # Log the error to console for debugging
-        print(f"❌ Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error processing financial document: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-    finally:
-        # Cleanup: Remove the file after processing to keep folder clean
-        if os.path.exists(absolute_file_path):
-            try:
-                os.remove(absolute_file_path)
-                print(f"🗑️ Cleanup: Removed {filename}")
-            except Exception as e:
-                print(f"⚠️ Warning: Could not remove temporary file: {e}")
+@app.get("/status/{task_id}")
+async def get_analysis_status(task_id: str, db: Session = Depends(get_db)):
+    """
+    Check the status of a submitted analysis task.
+    """
+    record = db.query(AnalysisResult).filter(AnalysisResult.task_id == task_id).first()
+    
+    if not record:
+        raise HTTPException(status_code=404, detail="Task not found")
 
-if __name__ == "__main__":
-    import uvicorn
-    # Use 0.0.0.0 to make it accessible
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    response = {
+        "task_id": task_id,
+        "status": record.status,
+        "submitted_at": record.created_at
+    }
+
+    if record.status == "SUCCESS":
+        response["analysis"] = record.result_text
+    elif record.status == "FAILED":
+        response["error"] = record.result_text
+
+    return response

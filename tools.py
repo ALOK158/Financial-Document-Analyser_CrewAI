@@ -1,122 +1,119 @@
 import os
 from dotenv import load_dotenv
-
-# 1. Import BaseTool from the main crewai package
-from crewai.tools import BaseTool 
-
-# 2. Import specific tools from the crewai_tools package
-from crewai_tools import FileReadTool, SerperDevTool
+from crewai.tools import BaseTool
+from crewai_tools import SerperDevTool
+from pydantic import BaseModel, Field
+import pdfplumber
 
 load_dotenv()
 
-# ... rest of your code ...
 
-# ----------------------------------------
-# 🔍 Search Tool (Pre-made CrewAI Tool)
-# ----------------------------------------
 search_tool = SerperDevTool()
 
 # ----------------------------------------
-# 📄 Financial Document Reader Tool
+# 📄 Financial Document Reader Tool (Prompt Engineered)
 # ----------------------------------------
+
+# 1. Keep the Pydantic model for validation
+class FinancialDocumentInput(BaseModel):
+    path: str = Field(..., description="The absolute file path to the PDF document.")
+
 class FinancialDocumentTool(BaseTool):
     name: str = "Financial Document Reader"
-    description: str = "Reads, cleans, and formats PDF-based financial documents. Takes a file path as input."
+    # ✅ BETTER PROMPTING: Explicitly tell the model the exact JSON format to use
+    description: str = (
+        "Reads and extracts text from a financial PDF. "
+        "INPUT FORMAT: You must provide a JSON object with a single key 'path'. "
+        "Example: {'path': 'C:/data/file.pdf'}. "
+        "Do NOT include 'properties', 'type', or schema definitions in your input."
+    )
+    args_schema: type[BaseModel] = FinancialDocumentInput
 
-    def _run(self, path: str = "data/sample.pdf") -> str:
+    def _run(self, path: str) -> str:
         try:
-            if not os.path.exists(path):
-                return f"⚠️ Error: File not found at path '{path}'. Please upload a valid PDF."
+            # 1. Clean the path string
+            clean_path = path.strip('"').strip("'")
+            
+            # 2. Check existence
+            if not os.path.exists(clean_path):
+                return f"⚠️ Error: File not found at '{clean_path}'."
 
-            if not path.lower().endswith(".pdf"):
-                return f"⚠️ Error: Unsupported file type. Expected a .pdf file, got '{os.path.splitext(path)[1]}' instead."
-
-            # Use CrewAI's FileReadTool internally to read the raw file
-            reader = FileReadTool(file_path=path)
-            # Note: FileReadTool._run returns the content directly as a string usually, 
-            # but if using the class wrapper, we might need to handle it differently.
-            # Here we initialize and run it.
-            content = reader._run(file_path=path)
-
-            if not content:
-                return "⚠️ Error: No readable content found in the uploaded PDF."
-
-            return content.strip()
+            # 3. Read PDF safely using pdfplumber
+            text_content = []
+            with pdfplumber.open(clean_path) as pdf:
+                # Limit to first 5 pages to save tokens
+                for i, page in enumerate(pdf.pages):
+                    if i >= 5: 
+                        break
+                    text = page.extract_text()
+                    if text:
+                        text_content.append(text)
+            
+            full_text = "\n".join(text_content)
+            
+            # 4. SAFETY CUT: Limit to 5000 characters
+            if len(full_text) > 5000:
+                full_text = full_text[:5000] + "\n... [TRUNCATED TO PREVENT RATE LIMIT ERROR]"
+            
+            if not full_text:
+                return "⚠️ Error: The PDF appears to be empty."
+                
+            return full_text.strip()
 
         except Exception as e:
-            return f"❌ An unexpected error occurred while reading the document: {str(e)}"
+            return f"❌ Error reading PDF: {str(e)}"
 
-# Instantiate the tool
 financial_document_tool = FinancialDocumentTool()
 
 
 # ----------------------------------------
 # 💹 Investment Analysis Tool
 # ----------------------------------------
+class InvestmentInput(BaseModel):
+    financial_document_data: str = Field(..., description="The extracted text content.")
+
 class InvestmentTool(BaseTool):
     name: str = "Investment Analysis Tool"
-    description: str = "Analyze the financial document data and summarize investment insights."
+    description: str = "Analyze financial text for investment metrics."
+    args_schema: type[BaseModel] = InvestmentInput
 
     def _run(self, financial_document_data: str) -> str:
         try:
-            if not financial_document_data or len(financial_document_data) < 100:
-                return "⚠️ Document too short or invalid for meaningful investment analysis."
-
-            key_terms = ["revenue", "profit", "growth", "debt", "cash flow", "operating margin"]
-            findings = [term for term in key_terms if term.lower() in financial_document_data.lower()]
-
-            insights = "📊 Investment Analysis Summary:\n"
-            if findings:
-                insights += f"- Key financial metrics mentioned: {', '.join(findings)}.\n"
-            else:
-                insights += "- No major financial metrics identified.\n"
-
-            insights += (
-                "- Review revenue growth and profit margins.\n"
-                "- Evaluate debt ratios and liquidity levels.\n"
-                "- Focus on diversification to reduce risk exposure.\n"
-                "- Maintain a long-term outlook guided by fundamentals."
-            )
-            return insights.strip()
+            if not financial_document_data or len(financial_document_data) < 50:
+                return "⚠️ Data insufficient."
+            
+            key_terms = ["revenue", "profit", "growth", "debt", "cash", "margin"]
+            findings = [t for t in key_terms if t.lower() in financial_document_data.lower()]
+            
+            return f"📊 Found keywords: {', '.join(findings)}. Analyze these sections."
 
         except Exception as e:
-            return f"❌ Error during investment analysis: {str(e)}"
+            return f"❌ Error: {str(e)}"
 
-# Instantiate the tool
 investment_analysis_tool = InvestmentTool()
 
 
 # ----------------------------------------
 # ⚠️ Risk Assessment Tool
 # ----------------------------------------
+class RiskInput(BaseModel):
+    financial_document_data: str = Field(..., description="The extracted text content.")
+
 class RiskTool(BaseTool):
     name: str = "Risk Assessment Tool"
-    description: str = "Create a structured risk assessment based on financial data."
+    description: str = "Scan financial text for risk factors."
+    args_schema: type[BaseModel] = RiskInput
 
     def _run(self, financial_document_data: str) -> str:
         try:
-            if not financial_document_data or len(financial_document_data) < 50:
-                return "⚠️ Insufficient data for risk assessment."
-
-            risk_terms = ["debt", "loss", "liability", "volatility", "inflation", "exposure", "decline"]
-            found_terms = [term for term in risk_terms if term.lower() in financial_document_data.lower()]
-
-            report = "⚠️ Risk Assessment Report:\n"
-            if found_terms:
-                report += f"- Detected potential risk indicators: {', '.join(found_terms)}.\n"
-            else:
-                report += "- No major risk indicators detected.\n"
-
-            report += (
-                "- Review credit exposure and liquidity risks.\n"
-                "- Monitor market volatility and inflation trends.\n"
-                "- Assess compliance and operational resilience.\n"
-                "- Recommend appropriate hedging or diversification strategies."
-            )
-            return report.strip()
+            risk_terms = ["litigation", "risk", "debt", "default", "loss"]
+            found_risks = [t for t in risk_terms if t.lower() in financial_document_data.lower()]
+            
+            if found_risks:
+                return f"⚠️ Detected risks: {', '.join(found_risks)}."
+            return "✅ No immediate risks found."
 
         except Exception as e:
-            return f"❌ Error during risk assessment: {str(e)}"
+            return f"❌ Error: {str(e)}"
 
-# Instantiate the tool
 risk_assessment_tool = RiskTool()
