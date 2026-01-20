@@ -24,7 +24,7 @@ def run_crew_task(self, query: str, file_path: str, db_id: int):
             agents=[financial_analyst],
             tasks=[analyze_financial_document_task], 
             process=Process.sequential,
-            max_rpm=3 # Keep our safety limit!
+            max_rpm=1 # Keep our safety limit!
         )
 
         # 2. Run the analysis
